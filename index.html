@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MathLink Masters</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+            color: #334155;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            max-width: 90%;
+            max-height: 90%;
+            overflow-y: auto;
+            position: relative;
+        }
+        .hidden {
+            display: none;
+        }
+        .design-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            user-select: none;
+        }
+        .design-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        .design-card.active {
+            border: 4px solid #4ade80; /* Green border when active */
+        }
+        .golden-cube-emoji {
+            font-size: 8rem;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 215, 0, 0.6);
+            animation: pulse 1.5s infinite alternate;
+        }
+        @keyframes pulse {
+            from { transform: scale(1); opacity: 0.8; }
+            to { transform: scale(1.1); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans p-4">
+
+    <!-- Main App Container -->
+    <div id="main-app" class="bg-white p-8 rounded-3xl shadow-2xl max-w-4xl w-full text-center">
+        <h1 class="text-4xl sm:text-5xl font-bold mb-8 text-gray-800">MathLink Masters</h1>
+        
+        <!-- Resources Button -->
+        <div class="mb-8">
+            <button id="resources-btn" class="bg-blue-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:bg-blue-700 transition duration-300">
+                Resources
+            </button>
+        </div>
+
+        <!-- Timer Display -->
+        <div id="timer-display" class="hidden mb-8 text-3xl sm:text-4xl font-mono font-bold text-gray-700 bg-gray-200 py-4 px-6 rounded-xl shadow-inner">
+            <span id="timer-text">03:00</span>
+        </div>
+
+        <!-- Design Ideas Grid -->
+        <div id="design-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Design 1: House -->
+            <div class="design-card bg-purple-100 p-6 rounded-2xl shadow-md flex flex-col items-center" data-design="house">
+                <span class="text-6xl mb-4">🏠</span>
+                <p class="text-lg font-semibold">A House</p>
+                <p class="text-sm text-gray-500 mt-2">(30 cubes)</p>
+            </div>
+            <!-- Design 2: Cat -->
+            <div class="design-card bg-orange-100 p-6 rounded-2xl shadow-md flex flex-col items-center" data-design="cat">
+                <span class="text-6xl mb-4">🐈</span>
+                <p class="text-lg font-semibold">A Cat</p>
+                <p class="text-sm text-gray-500 mt-2">(45 cubes)</p>
+            </div>
+            <!-- Design 3: Numberblock -->
+            <div class="design-card bg-pink-100 p-6 rounded-2xl shadow-md flex flex-col items-center" data-design="numberblock">
+                <span class="text-6xl mb-4">🖐️</span>
+                <p class="text-lg font-semibold">Numberblock Five</p>
+                <p class="text-sm text-gray-500 mt-2">(5 cubes)</p>
+            </div>
+            <!-- Design 4: Car -->
+            <div class="design-card bg-teal-100 p-6 rounded-2xl shadow-md flex flex-col items-center" data-design="car">
+                <span class="text-6xl mb-4">🚗</span>
+                <p class="text-lg font-semibold">A Car</p>
+                <p class="text-sm text-gray-500 mt-2">(60 cubes)</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resources Modal -->
+    <div id="resources-modal" class="modal hidden">
+        <div class="modal-content text-center">
+            <h2 class="text-3xl font-bold mb-6 text-gray-800">Your MathLink Cubes</h2>
+            <div id="cube-counts" class="space-y-4 mb-6">
+                <!-- Cube count elements will be inserted here by JavaScript -->
+            </div>
+            <button onclick="hideModal('resources-modal')" class="bg-gray-400 text-white font-bold py-2 px-6 rounded-xl shadow-md hover:bg-gray-500 transition duration-300">
+                Done
+            </button>
+        </div>
+    </div>
+
+    <!-- Timer Finished Modal -->
+    <div id="timer-finished-modal" class="modal hidden">
+        <div class="modal-content text-center">
+            <h2 class="text-3xl font-bold mb-6 text-gray-800">Time's Up!</h2>
+            <p class="text-xl mb-8">Did you manage to make the design?</p>
+            <div class="flex justify-center space-x-4">
+                <button onclick="handleTimerResponse(true)" class="bg-green-600 text-white font-bold py-3 px-6 rounded-xl shadow-md hover:bg-green-700 transition duration-300">
+                    Yes
+                </button>
+                <button onclick="handleTimerResponse(false)" class="bg-red-600 text-white font-bold py-3 px-6 rounded-xl shadow-md hover:bg-red-700 transition duration-300">
+                    No
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Golden Cube Modal -->
+    <div id="golden-cube-modal" class="modal hidden">
+        <div class="modal-content text-center">
+            <h2 class="text-3xl font-bold mb-4 text-gray-800">Congratulations!</h2>
+            <p class="text-xl mb-8">You have earned the golden mathlink cube!</p>
+            <span class="golden-cube-emoji">🟨</span>
+            <div class="mt-8">
+                <button onclick="resetApp()" class="bg-yellow-500 text-white font-bold py-3 px-6 rounded-xl shadow-md hover:bg-yellow-600 transition duration-300">
+                    Reset
+                </button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // --- State & Variables ---
+    const CUBE_COLORS = ['red', 'yellow', 'blue', 'green'];
+    const DEFAULT_COUNT = 10;
+    const INITIAL_TIMER_SECONDS = 3 * 60;
+
+    let cubeCounts = {};
+    let timerInterval;
+    let timeRemaining;
+    let timerRunning = false;
+
+    // --- DOM Element References ---
+    const resourcesBtn = document.getElementById('resources-btn');
+    const designGrid = document.getElementById('design-grid');
+    const timerDisplay = document.getElementById('timer-display');
+    const timerText = document.getElementById('timer-text');
+    const resourcesModal = document.getElementById('resources-modal');
+    const timerFinishedModal = document.getElementById('timer-finished-modal');
+    const goldenCubeModal = document.getElementById('golden-cube-modal');
+    const cubeCountsContainer = document.getElementById('cube-counts');
+
+    // --- Utility Functions ---
+
+    /**
+     * Shows a modal by removing the 'hidden' class.
+     * @param {string} modalId - The ID of the modal element to show.
+     */
+    function showModal(modalId) {
+        document.getElementById(modalId).classList.remove('hidden');
+    }
+
+    /**
+     * Hides a modal by adding the 'hidden' class.
+     * @param {string} modalId - The ID of the modal element to hide.
+     */
+    function hideModal(modalId) {
+        document.getElementById(modalId).classList.add('hidden');
+    }
+
+    // --- Cube Count Management ---
+
+    /**
+     * Loads cube counts from localStorage or initializes them to default.
+     */
+    function loadCubeCounts() {
+        const storedCounts = localStorage.getItem('mathlinkCubeCounts');
+        if (storedCounts) {
+            cubeCounts = JSON.parse(storedCounts);
+        } else {
+            CUBE_COLORS.forEach(color => {
+                cubeCounts[color] = DEFAULT_COUNT;
+            });
+            saveCubeCounts();
+        }
+    }
+
+    /**
+     * Saves the current cube counts to localStorage.
+     */
+    function saveCubeCounts() {
+        localStorage.setItem('mathlinkCubeCounts', JSON.stringify(cubeCounts));
+    }
+
+    /**
+     * Renders the cube count UI in the resources modal.
+     */
+    function renderCubeCounts() {
+        cubeCountsContainer.innerHTML = '';
+        const colorEmojis = {
+            'red': '🟥', 'yellow': '🟨', 'blue': '🟦', 'green': '🟩'
+        };
+        
+        CUBE_COLORS.forEach(color => {
+            const container = document.createElement('div');
+            container.classList.add('flex', 'items-center', 'space-x-4');
+            container.innerHTML = `
+                <span class="text-3xl">${colorEmojis[color]}</span>
+                <p class="capitalize font-semibold text-lg w-20">${color}</p>
+                <div class="flex-grow">
+                    <input type="number" data-color="${color}" value="${cubeCounts[color]}" min="0" class="w-20 py-2 px-3 rounded-md border border-gray-300 text-center">
+                </div>
+                <div class="flex space-x-1">
+                    <button class="bg-gray-300 text-gray-700 py-1 px-2 rounded-md hover:bg-gray-400" data-color="${color}" data-change="-10">-10</button>
+                    <button class="bg-gray-300 text-gray-700 py-1 px-2 rounded-md hover:bg-gray-400" data-color="${color}" data-change="-1">-1</button>
+                    <button class="bg-gray-300 text-gray-700 py-1 px-2 rounded-md hover:bg-gray-400" data-color="${color}" data-change="1">+1</button>
+                    <button class="bg-gray-300 text-gray-700 py-1 px-2 rounded-md hover:bg-gray-400" data-color="${color}" data-change="10">+10</button>
+                </div>
+            `;
+            cubeCountsContainer.appendChild(container);
+        });
+
+        // Add event listeners for the new elements
+        cubeCountsContainer.addEventListener('click', (event) => {
+            const button = event.target.closest('button');
+            if (button && button.dataset.color && button.dataset.change) {
+                const color = button.dataset.color;
+                const change = parseInt(button.dataset.change);
+                cubeCounts[color] = Math.max(0, cubeCounts[color] + change);
+                document.querySelector(`input[data-color="${color}"]`).value = cubeCounts[color];
+                saveCubeCounts();
+            }
+        });
+
+        cubeCountsContainer.addEventListener('input', (event) => {
+            const input = event.target.closest('input[type="number"]');
+            if (input && input.dataset.color) {
+                const color = input.dataset.color;
+                cubeCounts[color] = Math.max(0, parseInt(input.value) || 0);
+                saveCubeCounts();
+            }
+        });
+    }
+
+    // --- Timer Logic ---
+
+    /**
+     * Updates the timer display every second.
+     */
+    function updateTimer() {
+        if (timeRemaining <= 0) {
+            clearInterval(timerInterval);
+            timerRunning = false;
+            showModal('timer-finished-modal');
+            return;
+        }
+
+        const minutes = Math.floor(timeRemaining / 60);
+        const seconds = timeRemaining % 60;
+        timerText.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        timeRemaining--;
+    }
+
+    /**
+     * Starts the 3-minute timer.
+     */
+    function startTimer() {
+        if (timerRunning) return;
+        
+        timeRemaining = INITIAL_TIMER_SECONDS;
+        timerRunning = true;
+        timerDisplay.classList.remove('hidden');
+        resourcesBtn.disabled = true;
+        resourcesBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+        // Disable design cards
+        document.querySelectorAll('.design-card').forEach(card => card.style.pointerEvents = 'none');
+
+        // Make the timer start instantly
+        updateTimer(); 
+        timerInterval = setInterval(updateTimer, 1000);
+    }
+
+    /**
+     * Handles the user's response to the timer completion modal.
+     * @param {boolean} success - True if the user completed the design, false otherwise.
+     */
+    function handleTimerResponse(success) {
+        hideModal('timer-finished-modal');
+        if (success) {
+            showModal('golden-cube-modal');
+        } else {
+            // Give 3 more minutes
+            startTimer();
+        }
+    }
+
+    /**
+     * Resets the entire app to its initial state.
+     */
+    function resetApp() {
+        hideModal('golden-cube-modal');
+        timerRunning = false;
+        clearInterval(timerInterval);
+        timerDisplay.classList.add('hidden');
+        resourcesBtn.disabled = false;
+        resourcesBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        
+        // Re-enable design cards
+        document.querySelectorAll('.design-card').forEach(card => card.style.pointerEvents = 'auto');
+        
+        // Reset the active state on the cards
+        document.querySelectorAll('.design-card').forEach(card => card.classList.remove('active'));
+    }
+
+    // --- Event Listeners ---
+
+    // Open resources modal
+    resourcesBtn.addEventListener('click', () => {
+        renderCubeCounts();
+        showModal('resources-modal');
+    });
+
+    // Handle design card clicks
+    designGrid.addEventListener('click', (event) => {
+        if (timerRunning) return;
+        const card = event.target.closest('.design-card');
+        if (card) {
+            // Highlight the selected card
+            document.querySelectorAll('.design-card').forEach(c => c.classList.remove('active'));
+            card.classList.add('active');
+            
+            startTimer();
+        }
+    });
+
+    // --- Initialization ---
+    document.addEventListener('DOMContentLoaded', () => {
+        loadCubeCounts();
+    });
+</script>
+
+</body>
+</html>
