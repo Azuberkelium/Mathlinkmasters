@@ -64,18 +64,57 @@
             from { transform: scale(1); opacity: 0.8; }
             to { transform: scale(1.1); opacity: 1; }
         }
+        .design-image {
+            width: 100%;
+            height: auto;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .lds-dual-ring {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+        }
+        .lds-dual-ring:after {
+            content: " ";
+            display: block;
+            width: 24px;
+            height: 24px;
+            margin: 4px;
+            border-radius: 50%;
+            border: 4px solid #fff;
+            border-color: #fff transparent #fff transparent;
+            animation: lds-dual-ring 1.2s linear infinite;
+        }
+        @keyframes lds-dual-ring {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-100 font-sans p-4">
 
     <!-- Main App Container -->
     <div id="main-app" class="bg-white p-8 rounded-3xl shadow-2xl max-w-4xl w-full text-center">
-        <h1 class="text-4xl sm:text-5xl font-bold mb-8 text-gray-800">MathLink Masters</h1>
+        <h1 class="text-4xl sm:text-5xl font-bold mb-4 text-gray-800">MathLink Masters</h1>
         
-        <!-- Resources Button -->
-        <div class="mb-8">
+        <!-- User ID display -->
+        <div class="text-xs text-gray-500 mb-6">User ID: <span id="user-id-display" class="font-mono break-all"></span></div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4 mb-8">
             <button id="resources-btn" class="bg-blue-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:bg-blue-700 transition duration-300">
                 Resources
+            </button>
+            <button id="new-designs-btn" class="bg-purple-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:bg-purple-700 transition duration-300">
+                New Designs
+            </button>
+            <button id="upload-design-btn" class="bg-green-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:bg-green-700 transition duration-300">
+                Upload a Design
             </button>
         </div>
 
@@ -86,29 +125,9 @@
 
         <!-- Design Ideas Grid -->
         <div id="design-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <!-- Design 1: House -->
-            <div class="design-card bg-purple-100 p-6 rounded-2xl shadow-md flex flex-col items-center" data-design="house">
-                <span class="text-6xl mb-4">🏠</span>
-                <p class="text-lg font-semibold">A House</p>
-                <p class="text-sm text-gray-500 mt-2">(30 cubes)</p>
-            </div>
-            <!-- Design 2: Cat -->
-            <div class="design-card bg-orange-100 p-6 rounded-2xl shadow-md flex flex-col items-center" data-design="cat">
-                <span class="text-6xl mb-4">🐈</span>
-                <p class="text-lg font-semibold">A Cat</p>
-                <p class="text-sm text-gray-500 mt-2">(45 cubes)</p>
-            </div>
-            <!-- Design 3: Numberblock -->
-            <div class="design-card bg-pink-100 p-6 rounded-2xl shadow-md flex flex-col items-center" data-design="numberblock">
-                <span class="text-6xl mb-4">🖐️</span>
-                <p class="text-lg font-semibold">Numberblock Five</p>
-                <p class="text-sm text-gray-500 mt-2">(5 cubes)</p>
-            </div>
-            <!-- Design 4: Car -->
-            <div class="design-card bg-teal-100 p-6 rounded-2xl shadow-md flex flex-col items-center" data-design="car">
-                <span class="text-6xl mb-4">🚗</span>
-                <p class="text-lg font-semibold">A Car</p>
-                <p class="text-sm text-gray-500 mt-2">(60 cubes)</p>
+            <!-- Designs will be dynamically generated here by JavaScript -->
+            <div id="loading-spinner" class="col-span-full hidden flex justify-center items-center">
+                <div class="lds-dual-ring"></div>
             </div>
         </div>
     </div>
@@ -156,216 +175,526 @@
         </div>
     </div>
 
-<script>
-    // --- State & Variables ---
-    const CUBE_COLORS = ['red', 'yellow', 'blue', 'green'];
-    const DEFAULT_COUNT = 10;
-    const INITIAL_TIMER_SECONDS = 3 * 60;
+    <!-- Upload Design Modal -->
+    <div id="upload-design-modal" class="modal hidden">
+        <div class="modal-content text-left w-full max-w-lg">
+            <h2 class="text-3xl font-bold mb-6 text-gray-800 text-center">Upload a New Design</h2>
+            <form id="upload-design-form" class="space-y-6">
+                <div>
+                    <label for="design-title" class="block text-lg font-medium text-gray-700">Design Title</label>
+                    <input type="text" id="design-title" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-lg p-2">
+                </div>
+                <div>
+                    <label for="image-url" class="block text-lg font-medium text-gray-700">Image URL</label>
+                    <input type="url" id="image-url" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-lg p-2">
+                </div>
+                <div class="space-y-4">
+                    <label class="block text-lg font-medium text-gray-700">Cube Counts</label>
+                    <div id="cube-upload-container" class="space-y-2">
+                        <!-- Dynamic cube inputs will go here -->
+                    </div>
+                    <button type="button" id="add-color-btn" class="bg-blue-500 text-white py-2 px-4 rounded-md text-sm font-semibold hover:bg-blue-600 transition">
+                        Add a Color
+                    </button>
+                </div>
+                <div class="flex justify-end space-x-4 mt-6">
+                    <button type="button" onclick="hideModal('upload-design-modal')" class="bg-gray-400 text-white font-bold py-2 px-6 rounded-xl shadow-md hover:bg-gray-500 transition duration-300">
+                        Cancel
+                    </button>
+                    <button type="submit" class="bg-green-600 text-white font-bold py-2 px-6 rounded-xl shadow-md hover:bg-green-700 transition duration-300">
+                        <span id="submit-btn-text">Submit Design</span>
+                        <div id="submit-spinner" class="lds-dual-ring hidden"></div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-    let cubeCounts = {};
-    let timerInterval;
-    let timeRemaining;
-    let timerRunning = false;
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    // --- DOM Element References ---
-    const resourcesBtn = document.getElementById('resources-btn');
-    const designGrid = document.getElementById('design-grid');
-    const timerDisplay = document.getElementById('timer-display');
-    const timerText = document.getElementById('timer-text');
-    const resourcesModal = document.getElementById('resources-modal');
-    const timerFinishedModal = document.getElementById('timer-finished-modal');
-    const goldenCubeModal = document.getElementById('golden-cube-modal');
-    const cubeCountsContainer = document.getElementById('cube-counts');
+        // --- Global Variables (provided by the environment) ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-    // --- Utility Functions ---
+        let db;
+        let auth;
+        let userId;
 
-    /**
-     * Shows a modal by removing the 'hidden' class.
-     * @param {string} modalId - The ID of the modal element to show.
-     */
-    function showModal(modalId) {
-        document.getElementById(modalId).classList.remove('hidden');
-    }
-
-    /**
-     * Hides a modal by adding the 'hidden' class.
-     * @param {string} modalId - The ID of the modal element to hide.
-     */
-    function hideModal(modalId) {
-        document.getElementById(modalId).classList.add('hidden');
-    }
-
-    // --- Cube Count Management ---
-
-    /**
-     * Loads cube counts from localStorage or initializes them to default.
-     */
-    function loadCubeCounts() {
-        const storedCounts = localStorage.getItem('mathlinkCubeCounts');
-        if (storedCounts) {
-            cubeCounts = JSON.parse(storedCounts);
-        } else {
-            CUBE_COLORS.forEach(color => {
-                cubeCounts[color] = DEFAULT_COUNT;
-            });
-            saveCubeCounts();
-        }
-    }
-
-    /**
-     * Saves the current cube counts to localStorage.
-     */
-    function saveCubeCounts() {
-        localStorage.setItem('mathlinkCubeCounts', JSON.stringify(cubeCounts));
-    }
-
-    /**
-     * Renders the cube count UI in the resources modal.
-     */
-    function renderCubeCounts() {
-        cubeCountsContainer.innerHTML = '';
-        const colorEmojis = {
-            'red': '🟥', 'yellow': '🟨', 'blue': '🟦', 'green': '🟩'
+        // --- State & Variables ---
+        const CUBE_COLORS = ['red', 'yellow', 'blue', 'green', 'orange', 'pink'];
+        const DEFAULT_COUNT = 10;
+        const INITIAL_TIMER_SECONDS = 3 * 60;
+        
+        // Define a larger pool of cube requirements for various designs
+        const preDefinedDesigns = {
+            'house': { 'title': 'A House', 'description': 'A simple house design.', 'cubes': { 'red': 10, 'blue': 20, 'total': 30 } },
+            'cat': { 'title': 'A Cat', 'description': 'A cat with a tail and ears.', 'cubes': { 'orange': 30, 'yellow': 15, 'total': 45 } },
+            'numberblock': { 'title': 'Numberblock Five', 'description': 'The Numberblock Five character.', 'cubes': { 'orange': 5, 'total': 5 } },
+            'car': { 'title': 'A Car', 'description': 'A speedy car with wheels.', 'cubes': { 'green': 40, 'yellow': 20, 'total': 60 } },
+            'tree': { 'title': 'A Tree', 'description': 'A tree with a trunk and leaves.', 'cubes': { 'green': 25, 'brown': 10, 'total': 35 } },
+            'rocket': { 'title': 'A Rocket', 'description': 'A rocket ready for blast-off.', 'cubes': { 'blue': 20, 'red': 10, 'total': 30 } },
+            'robot': { 'title': 'A Robot', 'description': 'A friendly robot.', 'cubes': { 'yellow': 15, 'blue': 15, 'total': 30 } },
+            'snake': { 'title': 'A Snake', 'description': 'A long, winding snake.', 'cubes': { 'green': 15, 'red': 15, 'total': 30 } },
+            'boat': { 'title': 'A Boat', 'description': 'A boat with a sail.', 'cubes': { 'blue': 20, 'red': 5, 'total': 25 } },
+            'dog': { 'title': 'A Dog', 'description': 'A playful dog.', 'cubes': { 'brown': 20, 'white': 10, 'total': 30 } },
+            'plane': { 'title': 'A Plane', 'description': 'A plane with wings.', 'cubes': { 'blue': 25, 'white': 15, 'total': 40 } },
+            'butterfly': { 'title': 'A Butterfly', 'description': 'A beautiful butterfly.', 'cubes': { 'yellow': 10, 'blue': 10, 'total': 20 } },
         };
-        
-        CUBE_COLORS.forEach(color => {
-            const container = document.createElement('div');
-            container.classList.add('flex', 'items-center', 'space-x-4');
-            container.innerHTML = `
-                <span class="text-3xl">${colorEmojis[color]}</span>
-                <p class="capitalize font-semibold text-lg w-20">${color}</p>
-                <div class="flex-grow">
-                    <input type="number" data-color="${color}" value="${cubeCounts[color]}" min="0" class="w-20 py-2 px-3 rounded-md border border-gray-300 text-center">
-                </div>
-                <div class="flex space-x-1">
-                    <button class="bg-gray-300 text-gray-700 py-1 px-2 rounded-md hover:bg-gray-400" data-color="${color}" data-change="-10">-10</button>
-                    <button class="bg-gray-300 text-gray-700 py-1 px-2 rounded-md hover:bg-gray-400" data-color="${color}" data-change="-1">-1</button>
-                    <button class="bg-gray-300 text-gray-700 py-1 px-2 rounded-md hover:bg-gray-400" data-color="${color}" data-change="1">+1</button>
-                    <button class="bg-gray-300 text-gray-700 py-1 px-2 rounded-md hover:bg-gray-400" data-color="${color}" data-change="10">+10</button>
-                </div>
-            `;
-            cubeCountsContainer.appendChild(container);
-        });
 
-        // Add event listeners for the new elements
-        cubeCountsContainer.addEventListener('click', (event) => {
-            const button = event.target.closest('button');
-            if (button && button.dataset.color && button.dataset.change) {
-                const color = button.dataset.color;
-                const change = parseInt(button.dataset.change);
-                cubeCounts[color] = Math.max(0, cubeCounts[color] + change);
-                document.querySelector(`input[data-color="${color}"]`).value = cubeCounts[color];
-                saveCubeCounts();
-            }
-        });
+        let cubeCounts = {};
+        let timerInterval;
+        let timeRemaining;
+        let timerRunning = false;
+        let currentDesigns = []; // Holds the 4 currently displayed designs
+        let allDesigns = {}; // Merged pre-defined and user-uploaded designs
+        let selectedDesign = null;
+        let isAuthReady = false;
 
-        cubeCountsContainer.addEventListener('input', (event) => {
-            const input = event.target.closest('input[type="number"]');
-            if (input && input.dataset.color) {
-                const color = input.dataset.color;
-                cubeCounts[color] = Math.max(0, parseInt(input.value) || 0);
-                saveCubeCounts();
-            }
-        });
-    }
+        // --- DOM Element References ---
+        const resourcesBtn = document.getElementById('resources-btn');
+        const newDesignsBtn = document.getElementById('new-designs-btn');
+        const uploadDesignBtn = document.getElementById('upload-design-btn');
+        const designGrid = document.getElementById('design-grid');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const timerDisplay = document.getElementById('timer-display');
+        const timerText = document.getElementById('timer-text');
+        const resourcesModal = document.getElementById('resources-modal');
+        const timerFinishedModal = document.getElementById('timer-finished-modal');
+        const goldenCubeModal = document.getElementById('golden-cube-modal');
+        const uploadDesignModal = document.getElementById('upload-design-modal');
+        const cubeCountsContainer = document.getElementById('cube-counts');
+        const uploadDesignForm = document.getElementById('upload-design-form');
+        const cubeUploadContainer = document.getElementById('cube-upload-container');
+        const addColorBtn = document.getElementById('add-color-btn');
+        const submitBtnText = document.getElementById('submit-btn-text');
+        const submitSpinner = document.getElementById('submit-spinner');
+        const userIdDisplay = document.getElementById('user-id-display');
 
-    // --- Timer Logic ---
+        // --- Utility Functions ---
 
-    /**
-     * Updates the timer display every second.
-     */
-    function updateTimer() {
-        if (timeRemaining <= 0) {
-            clearInterval(timerInterval);
-            timerRunning = false;
-            showModal('timer-finished-modal');
-            return;
+        /**
+         * Shows a modal by removing the 'hidden' class.
+         * @param {string} modalId - The ID of the modal element to show.
+         */
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
         }
 
-        const minutes = Math.floor(timeRemaining / 60);
-        const seconds = timeRemaining % 60;
-        timerText.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-        timeRemaining--;
-    }
-
-    /**
-     * Starts the 3-minute timer.
-     */
-    function startTimer() {
-        if (timerRunning) return;
-        
-        timeRemaining = INITIAL_TIMER_SECONDS;
-        timerRunning = true;
-        timerDisplay.classList.remove('hidden');
-        resourcesBtn.disabled = true;
-        resourcesBtn.classList.add('opacity-50', 'cursor-not-allowed');
-
-        // Disable design cards
-        document.querySelectorAll('.design-card').forEach(card => card.style.pointerEvents = 'none');
-
-        // Make the timer start instantly
-        updateTimer(); 
-        timerInterval = setInterval(updateTimer, 1000);
-    }
-
-    /**
-     * Handles the user's response to the timer completion modal.
-     * @param {boolean} success - True if the user completed the design, false otherwise.
-     */
-    function handleTimerResponse(success) {
-        hideModal('timer-finished-modal');
-        if (success) {
-            showModal('golden-cube-modal');
-        } else {
-            // Give 3 more minutes
-            startTimer();
+        /**
+         * Hides a modal by adding the 'hidden' class.
+         * @param {string} modalId - The ID of the modal element to hide.
+         */
+        function hideModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
         }
-    }
 
-    /**
-     * Resets the entire app to its initial state.
-     */
-    function resetApp() {
-        hideModal('golden-cube-modal');
-        timerRunning = false;
-        clearInterval(timerInterval);
-        timerDisplay.classList.add('hidden');
-        resourcesBtn.disabled = false;
-        resourcesBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-        
-        // Re-enable design cards
-        document.querySelectorAll('.design-card').forEach(card => card.style.pointerEvents = 'auto');
-        
-        // Reset the active state on the cards
-        document.querySelectorAll('.design-card').forEach(card => card.classList.remove('active'));
-    }
+        /**
+         * Selects a random subset of designs from the pool.
+         * @param {number} count - The number of designs to select.
+         * @returns {Array} An array of selected design objects.
+         */
+        function getRandomDesigns(count) {
+            const designKeys = Object.keys(allDesigns);
+            const shuffled = designKeys.sort(() => 0.5 - Math.random());
+            const selectedKeys = shuffled.slice(0, count);
+            return selectedKeys.map(key => ({
+                id: key,
+                data: allDesigns[key]
+            }));
+        }
 
-    // --- Event Listeners ---
-
-    // Open resources modal
-    resourcesBtn.addEventListener('click', () => {
-        renderCubeCounts();
-        showModal('resources-modal');
-    });
-
-    // Handle design card clicks
-    designGrid.addEventListener('click', (event) => {
-        if (timerRunning) return;
-        const card = event.target.closest('.design-card');
-        if (card) {
-            // Highlight the selected card
-            document.querySelectorAll('.design-card').forEach(c => c.classList.remove('active'));
-            card.classList.add('active');
+        /**
+         * Renders a new set of 4 designs on the grid.
+         */
+        function renderNewDesigns() {
+            // Reset the selected design and the timer display
+            selectedDesign = null;
+            timerDisplay.classList.add('hidden');
             
-            startTimer();
-        }
-    });
+            // Get 4 random designs from the combined list
+            currentDesigns = getRandomDesigns(4);
+            designGrid.innerHTML = ''; // Clear the grid
 
-    // --- Initialization ---
-    document.addEventListener('DOMContentLoaded', () => {
-        loadCubeCounts();
-    });
-</script>
+            currentDesigns.forEach(design => {
+                const card = document.createElement('div');
+                card.classList.add('design-card', 'bg-white', 'p-6', 'rounded-2xl', 'shadow-md', 'flex', 'flex-col', 'items-center');
+                card.dataset.design = design.id;
+                
+                // Use the image URL if available, otherwise use a placeholder
+                const imageUrl = design.data.imageUrl || `https://placehold.co/150x150/000000/ffffff?text=${encodeURIComponent(design.data.title.replace(/\s/g, '+'))}`;
+                
+                card.innerHTML = `
+                    <img src="${imageUrl}" alt="${design.data.description || design.data.title}" class="design-image">
+                    <p class="text-lg font-semibold">${design.data.title}</p>
+                    <p class="text-sm text-gray-500 mt-2">(${design.data.cubes.total} cubes)</p>
+                `;
+                designGrid.appendChild(card);
+            });
+
+            // Re-enable design cards
+            document.querySelectorAll('.design-card').forEach(card => card.style.pointerEvents = 'auto');
+            
+            // Reset active card state
+            document.querySelectorAll('.design-card').forEach(card => card.classList.remove('active'));
+        }
+
+        // --- Cube Count Management ---
+
+        /**
+         * Loads cube counts from localStorage or initializes them to default.
+         */
+        function loadCubeCounts() {
+            const storedCounts = localStorage.getItem('mathlinkCubeCounts');
+            if (storedCounts) {
+                cubeCounts = JSON.parse(storedCounts);
+            } else {
+                CUBE_COLORS.forEach(color => {
+                    cubeCounts[color] = DEFAULT_COUNT;
+                });
+                saveCubeCounts();
+            }
+        }
+
+        /**
+         * Saves the current cube counts to localStorage.
+         */
+        function saveCubeCounts() {
+            localStorage.setItem('mathlinkCubeCounts', JSON.stringify(cubeCounts));
+        }
+
+        /**
+         * Renders the cube count UI in the resources modal.
+         */
+        function renderCubeCounts() {
+            cubeCountsContainer.innerHTML = '';
+            const colorEmojis = {
+                'red': '🟥', 'yellow': '🟨', 'blue': '🟦', 'green': '🟩', 'orange': '🟧', 'pink': '🟪', 'brown': '🟫', 'white': '⬜'
+            };
+            
+            // Get the cube requirements for the currently selected design
+            const selectedDesignData = selectedDesign ? allDesigns[selectedDesign].cubes : {};
+            
+            // Use a set to get all unique colors
+            const allColors = new Set([...CUBE_COLORS, ...Object.keys(selectedDesignData)]);
+
+            allColors.forEach(color => {
+                const requiredCount = selectedDesignData[color] || 0;
+                const hasCount = cubeCounts[color] || 0;
+                
+                const container = document.createElement('div');
+                container.classList.add('flex', 'items-center', 'space-x-4', 'p-2', 'rounded-lg', 'bg-gray-50');
+                container.innerHTML = `
+                    <span class="text-3xl">${colorEmojis[color] || '⬜'}</span>
+                    <p class="capitalize font-semibold text-lg w-20">${color}</p>
+                    <div class="flex-grow text-left">
+                        <p class="text-sm text-gray-600">You have: <span class="font-bold text-gray-800">${hasCount}</span></p>
+                        <p class="text-sm text-gray-600">You need: <span class="font-bold text-blue-600">${requiredCount}</span></p>
+                    </div>
+                `;
+                cubeCountsContainer.appendChild(container);
+            });
+
+            // Add a section for manually adjusting counts
+            const manualAdjust = document.createElement('div');
+            manualAdjust.innerHTML = `
+                <h3 class="text-xl font-bold mt-8 mb-4">Manual Cube Adjustment</h3>
+                <div id="manual-cube-adjustment" class="space-y-4"></div>
+            `;
+            cubeCountsContainer.appendChild(manualAdjust);
+
+            CUBE_COLORS.forEach(color => {
+                const container = document.createElement('div');
+                container.classList.add('flex', 'items-center', 'space-x-4');
+                container.innerHTML = `
+                    <span class="text-2xl">${colorEmojis[color] || '⬜'}</span>
+                    <p class="capitalize font-semibold text-base w-20">${color}</p>
+                    <div class="flex-grow">
+                        <input type="number" data-color="${color}" value="${cubeCounts[color]}" min="0" class="w-20 py-2 px-3 rounded-md border border-gray-300 text-center">
+                    </div>
+                    <div class="flex space-x-1">
+                        <button class="bg-gray-300 text-gray-700 py-1 px-2 rounded-md hover:bg-gray-400" data-color="${color}" data-change="-10">-10</button>
+                        <button class="bg-gray-300 text-gray-700 py-1 px-2 rounded-md hover:bg-gray-400" data-color="${color}" data-change="-1">-1</button>
+                        <button class="bg-gray-300 text-gray-700 py-1 px-2 rounded-md hover:bg-gray-400" data-color="${color}" data-change="1">+1</button>
+                        <button class="bg-gray-300 text-gray-700 py-1 px-2 rounded-md hover:bg-gray-400" data-color="${color}" data-change="10">+10</button>
+                    </div>
+                `;
+                document.getElementById('manual-cube-adjustment').appendChild(container);
+            });
+
+            // Add event listeners for the new elements
+            document.getElementById('manual-cube-adjustment').addEventListener('click', (event) => {
+                const button = event.target.closest('button');
+                if (button && button.dataset.color && button.dataset.change) {
+                    const color = button.dataset.color;
+                    const change = parseInt(button.dataset.change);
+                    cubeCounts[color] = Math.max(0, cubeCounts[color] + change);
+                    document.querySelector(`input[data-color="${color}"]`).value = cubeCounts[color];
+                    saveCubeCounts();
+                }
+            });
+
+            document.getElementById('manual-cube-adjustment').addEventListener('input', (event) => {
+                const input = event.target.closest('input[type="number"]');
+                if (input && input.dataset.color) {
+                    const color = input.dataset.color;
+                    cubeCounts[color] = Math.max(0, parseInt(input.value) || 0);
+                    saveCubeCounts();
+                }
+            });
+        }
+
+        /**
+         * Renders the dynamic cube count inputs in the upload modal.
+         */
+        function renderUploadCubeInputs() {
+            cubeUploadContainer.innerHTML = '';
+            CUBE_COLORS.forEach(color => {
+                const container = document.createElement('div');
+                container.classList.add('flex', 'items-center', 'space-x-4');
+                container.innerHTML = `
+                    <label for="cube-${color}" class="text-sm w-20 capitalize">${color}:</label>
+                    <input type="number" id="cube-${color}" name="${color}" min="0" value="0" class="w-20 py-1 px-2 rounded-md border border-gray-300">
+                `;
+                cubeUploadContainer.appendChild(container);
+            });
+        }
+
+        // --- Timer Logic ---
+
+        /**
+         * Updates the timer display every second.
+         */
+        function updateTimer() {
+            if (timeRemaining <= 0) {
+                clearInterval(timerInterval);
+                timerRunning = false;
+                showModal('timer-finished-modal');
+                return;
+            }
+
+            const minutes = Math.floor(timeRemaining / 60);
+            const seconds = timeRemaining % 60;
+            timerText.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            timeRemaining--;
+        }
+
+        /**
+         * Starts the 3-minute timer.
+         */
+        function startTimer() {
+            if (timerRunning) return;
+            
+            timeRemaining = INITIAL_TIMER_SECONDS;
+            timerRunning = true;
+            timerDisplay.classList.remove('hidden');
+            resourcesBtn.disabled = true;
+            resourcesBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            newDesignsBtn.disabled = true;
+            newDesignsBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            uploadDesignBtn.disabled = true;
+            uploadDesignBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            // Disable design cards
+            document.querySelectorAll('.design-card').forEach(card => card.style.pointerEvents = 'none');
+
+            // Make the timer start instantly
+            updateTimer(); 
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        /**
+         * Handles the user's response to the timer completion modal.
+         * @param {boolean} success - True if the user completed the design, false otherwise.
+         */
+        function handleTimerResponse(success) {
+            hideModal('timer-finished-modal');
+            if (success) {
+                showModal('golden-cube-modal');
+            } else {
+                // Give 3 more minutes
+                startTimer();
+            }
+        }
+
+        /**
+         * Resets the entire app to its initial state.
+         */
+        function resetApp() {
+            hideModal('golden-cube-modal');
+            timerRunning = false;
+            clearInterval(timerInterval);
+            timerDisplay.classList.add('hidden');
+            resourcesBtn.disabled = false;
+            resourcesBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            newDesignsBtn.disabled = false;
+            newDesignsBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            uploadDesignBtn.disabled = false;
+            uploadDesignBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            
+            renderNewDesigns();
+        }
+
+        // --- Firebase Functions ---
+        
+        /**
+         * Initializes Firebase and authenticates the user.
+         */
+        async function initializeFirebase() {
+            if (Object.keys(firebaseConfig).length === 0) {
+                console.error("Firebase config is missing.");
+                return;
+            }
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                userId = auth.currentUser.uid;
+                userIdDisplay.textContent = userId;
+                isAuthReady = true;
+                listenForDesigns();
+            } catch (error) {
+                console.error("Firebase initialization or authentication failed:", error);
+            }
+        }
+
+        /**
+         * Subscribes to real-time updates for designs from Firestore.
+         */
+        function listenForDesigns() {
+            if (!isAuthReady) return;
+            const q = query(collection(db, `artifacts/${appId}/public/designs`));
+            
+            loadingSpinner.classList.remove('hidden');
+
+            onSnapshot(q, (querySnapshot) => {
+                loadingSpinner.classList.add('hidden');
+                let userUploadedDesigns = {};
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    // Ensure the data structure is as expected and add to our local designs
+                    if (data.title && data.imageUrl && data.cubes && data.cubes.total) {
+                        userUploadedDesigns[doc.id] = {
+                            title: data.title,
+                            imageUrl: data.imageUrl,
+                            cubes: data.cubes
+                        };
+                    }
+                });
+                // Merge pre-defined designs with the newly fetched ones
+                allDesigns = { ...preDefinedDesigns, ...userUploadedDesigns };
+                renderNewDesigns();
+            }, (error) => {
+                console.error("Error fetching designs:", error);
+                loadingSpinner.classList.add('hidden');
+            });
+        }
+
+        /**
+         * Handles the form submission to upload a new design to Firestore.
+         * @param {Event} event - The form submission event.
+         */
+        async function handleUploadDesign(event) {
+            event.preventDefault();
+            
+            submitBtnText.classList.add('hidden');
+            submitSpinner.classList.remove('hidden');
+
+            const title = document.getElementById('design-title').value;
+            const imageUrl = document.getElementById('image-url').value;
+            const cubeInputs = cubeUploadContainer.querySelectorAll('input');
+            const cubes = {};
+            let totalCubes = 0;
+
+            cubeInputs.forEach(input => {
+                const color = input.name;
+                const count = parseInt(input.value);
+                if (count > 0) {
+                    cubes[color] = count;
+                    totalCubes += count;
+                }
+            });
+
+            if (!title || !imageUrl || totalCubes === 0) {
+                alert("Please fill out all fields and add at least one cube.");
+                submitBtnText.classList.remove('hidden');
+                submitSpinner.classList.add('hidden');
+                return;
+            }
+
+            const newDesignData = {
+                title: title,
+                imageUrl: imageUrl,
+                cubes: { ...cubes, total: totalCubes },
+                userId: userId,
+                timestamp: serverTimestamp()
+            };
+
+            try {
+                // Add the new design to the 'designs' subcollection
+                await addDoc(collection(db, `artifacts/${appId}/public/designs`), newDesignData);
+                hideModal('upload-design-modal');
+                uploadDesignForm.reset();
+            } catch (e) {
+                console.error("Error adding document: ", e);
+            } finally {
+                submitBtnText.classList.remove('hidden');
+                submitSpinner.classList.add('hidden');
+            }
+        }
+
+        // --- Event Listeners ---
+
+        // Open resources modal
+        resourcesBtn.addEventListener('click', () => {
+            renderCubeCounts();
+            showModal('resources-modal');
+        });
+
+        // Generate new designs
+        newDesignsBtn.addEventListener('click', resetApp);
+        
+        // Open upload modal
+        uploadDesignBtn.addEventListener('click', () => {
+            renderUploadCubeInputs();
+            showModal('upload-design-modal');
+        });
+
+        // Handle form submission for uploading a design
+        uploadDesignForm.addEventListener('submit', handleUploadDesign);
+        
+        // Handle adding more colors in the upload modal (not implemented for simplicity, but a placeholder for future expansion)
+        // addColorBtn.addEventListener('click', () => { ... });
+
+        // Handle design card clicks
+        designGrid.addEventListener('click', (event) => {
+            if (timerRunning || !isAuthReady) return;
+            const card = event.target.closest('.design-card');
+            if (card) {
+                selectedDesign = card.dataset.design;
+                // Highlight the selected card
+                document.querySelectorAll('.design-card').forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+                
+                startTimer();
+            }
+        });
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCubeCounts();
+            initializeFirebase();
+        });
+    </script>
 
 </body>
 </html>
